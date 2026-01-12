@@ -1,7 +1,12 @@
 #!/bin/bash
 
-mkdir -p download
-cd download
+DLNAME=downloads
+
+CWD=$(pwd)
+DLPATH="$CWD/$DLNAME"
+
+mkdir -p $DLPATH
+cd $DLPATH
 
 # Get Caddy web server
 wget https://github.com/caddyserver/caddy/releases/download/v2.10.2/caddy_2.10.2_linux_amd64.tar.gz
@@ -23,3 +28,5 @@ wget https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.2
 
 # Get Rundeck source
 wget https://github.com/rundeck/rundeck/archive/refs/tags/v5.17.0.tar.gz
+
+cd $CWD
