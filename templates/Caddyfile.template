@@ -1,0 +1,39 @@
+auth.$BUILD_HOST_FQDN:443 {
+	tls internal
+	reverse_proxy localhost:9091
+}
+
+$BUILD_HOST_FQDN:443 {
+	tls internal
+	reverse_proxy :8000
+}
+
+code.$BUILD_HOST_FQDN:443 {
+	forward_auth localhost:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	tls internal
+	reverse_proxy :8090
+}
+
+jenkins.$BUILD_HOST_FQDN:443 {
+	forward_auth localhost:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	tls internal
+	reverse_proxy :8070
+}
+
+rundeck.$BUILD_HOST_FQDN:443 {
+	forward_auth localhost:9091 {
+		uri /api/authz/forward-auth
+		copy_headers Remote-User Remote-Groups Remote-Email Remote-Name
+	}
+
+	tls internal
+	reverse_proxy :4440
+}
