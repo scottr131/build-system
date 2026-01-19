@@ -18,7 +18,7 @@ cd $WWWPATH
 unzip $DLPATH/homer.zip
 
 cd $BINPATH
-tar xf $DLPATH/$CADDY_TARBALL
+tar xf $DLPATH/$CADDY_TARBALL caddy
 
 
 # cp $DLPATH/jenkins.war $BINPATH/jenkins.war
