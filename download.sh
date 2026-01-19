@@ -1,32 +1,63 @@
 #!/bin/bash
 
-DLNAME=downloads
+## Functions 
 
-CWD=$(pwd)
-DLPATH="$CWD/$DLNAME"
+download_file () {
+    if [ ! -f "$FILE" ]; then
+        echo "Downloading $FILE from $URL"
+        wget "$URL"
+    else
+        echo "File already exists: $FILE, not downloading"
+    fi
+}
 
+## Main Script
+
+# Load config
+source ./build-system.conf
+
+# Make download directory
 mkdir -p $DLPATH
 cd $DLPATH
 
 # Get Caddy web server
-wget https://github.com/caddyserver/caddy/releases/download/v2.10.2/caddy_2.10.2_linux_amd64.tar.gz
+URL=$CADDY_URL
+FILE=$CADDY_TARBALL
+download_file
 
 # Get Homer dashboard
-wget https://github.com/bastienwirtz/homer/releases/download/v25.11.1/homer.zip
+URL=$HOMER_URL
+FILE=$HOMER_ZIP
+download_file
+
+# Get Authelia
+URL=$AUTHELIA_URL
+FILE=$AUTHELIA_TARBALL
+download_file
 
 # Get code-server
-wget https://github.com/coder/code-server/releases/download/v4.107.0/code-server-4.107.0-linux-amd64.tar.gz
+URL=$CS_URL
+FILE=$CS_TARBALL
+download_file
 
 # Get Jenkins
-wget https://get.jenkins.io/war-stable/2.528.3/jenkins.war
+URL=$JENKINS_URL
+FILE=$JENKINS_TARBALL
+download_file
 
 # Get JDK17
-wget https://github.com/adoptium/temurin17-binaries/releases/download/jdk-17.0.17%2B10/OpenJDK17U-jdk_x64_linux_hotspot_17.0.17_10.tar.gz
+URL=$JDK17_URL
+FILE=$JDK17_TARBALL
+download_file
 
 # Get JDK11
-wget https://github.com/adoptium/temurin11-binaries/releases/download/jdk-11.0.29%2B7/OpenJDK11U-jdk_x64_linux_hotspot_11.0.29_7.tar.gz
+URL=$JDK11_URL
+FILE=$JDK11_TARBALL
+download_file
 
 # Get Rundeck source
-wget https://github.com/rundeck/rundeck/archive/refs/tags/v5.17.0.tar.gz
+URL=$RUNDEK_URL
+FILE=$RUNDECK_TARBALL
+download_file
 
 cd $CWD
