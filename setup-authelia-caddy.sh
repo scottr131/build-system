@@ -66,7 +66,7 @@ if [ -z "$PASS_HASH" ]; then
       
   PASS_HASH=$($BINPATH/authelia crypto hash generate argon2 --password $USER_PASSWORD)
   unset USER_PASSWORD
-  PASS_HASH=${PASS_HASH:8}
+  PASS_HASH="${PASS_HASH:8}"
 fi
 
 # PASS_HASH should exist now (by secrets, conf, or prompt)

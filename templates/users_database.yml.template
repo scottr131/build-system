@@ -1,0 +1,19 @@
+# yamllint disable rule:line-length
+---
+###############################################################
+#                         Users Database                      #
+###############################################################
+
+# This file can be used if you do not have an LDAP set up.
+
+users:
+  ${AUTH_USER}:
+    disabled: true
+    displayname: "Test User"
+    password: ${PASS_HASH}
+    email: authelia@authelia.com
+    groups:
+      - admins
+      - dev
+...
+# yamllint enable rule:line-length
