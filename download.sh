@@ -56,7 +56,7 @@ FILE=$JDK11_TARBALL
 download_file
 
 # Get Rundeck source
-URL=$RUNDEK_URL
+URL=$RUNDECK_URL
 FILE=$RUNDECK_TARBALL
 download_file
 
