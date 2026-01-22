@@ -8,8 +8,8 @@
 
 users:
   ${AUTH_USER}:
-    disabled: true
-    displayname: "Test User"
+    disabled: false
+    displayname: "Build User"
     password: ${PASS_HASH}
     email: authelia@authelia.com
     groups:
