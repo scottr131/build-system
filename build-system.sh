@@ -16,6 +16,22 @@ else
 fi
 
 ### Functions
+## Build functions
+build_rundeck() {
+    cd $BLDPATH
+    tar xf $DLPATH/$RDECK_SRC_TARBALL
+
+    ln -s $(find . -name rundeck-*) rundeck
+    cd rundeck
+
+    git init
+    git add .
+    git config user.email "builder"
+    git config user.name "builder"
+    git commit -m "fake"
+    JAVA_HOME=/home/clusteradm/build-system/jdk/11 PATH=$PATH:/home/clusteradm/build-system/jdk/11/bin ./gradlew -x check build
+}
+
 ## Download functions
 download_authelia() {
     URL=$AUTHELIA_URL
@@ -71,7 +87,7 @@ setup_directories() {
     mkdir -p $WWWPATH
 }
 
-setup_code-server() {
+setup_code_server() {
     cd $BINPATH
     tar xf $DLPATH/$CS_TARBALL
     ln -s $(find . -name code-server*) code-server   
@@ -196,6 +212,66 @@ setup_rundeck()
     fi
 }
 
+## Startup functions
+start_code_server() {
+    $BINPATH/code-server/bin/code-server --bind-addr 0.0.0.0:8090 >> $LOGPATH/code-server.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/code-server.pid
+}
+
+start_homer() {
+    # Start an instance of Caddy on port 8000 serving Homer dashboard from www directory
+    $BINPATH/caddy file-server --listen :8000 --root www/ >> $CWD/caddy.log 2>&1 &
+}
+
+start_jenkins() {
+    JENKINS_HOME=$CWD/jenkins JAVA_HOME=$JDKPATH/17 $JDKPATH/17/bin/java -jar $BINPATH/jenkins.war --httpPort=8070 >> $LOGPATH/jenkins.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/jenkins.pid    
+}
+
+start_reverse_proxy() {
+    cd $AUTHPATH
+
+    # Start Authelia
+    $BINPATH/authelia --config config.yml >> $LOGPATH/authelia.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/authelia.pid
+
+    # Start an instance of Caddy on port 8000 serving Homer dashboard from www directory
+    sudo --preserve-env=LOGPATH $BINPATH/caddy run >> $LOGPATH/caddy-rp.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/caddy-rp.pid
+
+    cd $CWD    
+}
+
+start_rundeck() {
+    if [ ! -d "$RDECK_BASE" ]; then
+        mkdir -p $RDECK_BASE
+        echo "Created RDECK_BASE - $RDECK_BASE" >> $CWD/rundeck.log
+    fi
+
+    if [ ! -f "$RDECK_BASE/rundeck.war" ]; then
+        cp $BINPATH/rundeck.war $RDECK_BASE/rundeck.war
+        echo "Copied rundeck.war from $BINPATH" >> $CWD/rundeck.log
+    fi
+
+
+    PATH=$PATH:$RDECK_BASE/tools/bin MANPATH=$MANPATH:$RDECK_BASE/docs/man JAVA_HOME=$JDKPATH/java17 $JDKPATH/17/bin/java -Xmx4g -jar $RDECK_BASE/rundeck.war >> $CWD/rundeck.log 2>&1 &
+}
+
+## Stop functions
+stop_jenkins() {
+    if [ -r "$LOGPATH/jenkins.pid" ]; then
+        echo "Stopping Jenkins"
+        kill $(cat $LOGPATH/jenkins.pid)
+        rm $LOGPATH/jenkins.pid
+    else
+        echo "No PID file found!  Could not stop Jenkins."
+    fi
+}
+
 ## Helper functions
 download_file () {
     if [ ! -f "$FILE" ]; then
@@ -212,6 +288,18 @@ download_file () {
 
 ### Main switch
 case "$1" in
+    build)
+        case "$2" in
+            rundeck)
+                echo "Build Rundeck"
+                build_rundeck
+                ;;
+            *)
+                echo "$2 is not a valid option for 'build'"
+                ;;
+        esac
+        ;;
+
     'download')
         # Make download directory
         mkdir -p $DLPATH
@@ -254,7 +342,7 @@ case "$1" in
         case "$2" in
             'cs'|'code-server')
                 echo "Setup code-server"
-                setup_code-server
+                setup_code_server
                 ;;
             'dirs'|'directories')
                 echo "Setup directories"
@@ -267,6 +355,10 @@ case "$1" in
             'jdk')
                 echo "Setup JDKs"
                 setup_jdk
+                ;;
+            'jenkins')
+                echo "Setup Jenkins"
+                setup_jenkins
                 ;;
             'rp'|'reverse-proxy')
                 echo "Setup reverse proxy with Authelia and Caddy"
@@ -283,11 +375,38 @@ case "$1" in
         ;;
     start)
         case "$2" in
+            code-server)
+                echo "Start code-server"
+                start_code_server
+                ;;
+            homer)
+                echo "Start Homer with Caddy"
+                start_homer
+                ;;
             jenkins)
                 echo "Start Jenkins"
+                start_jenkins
+                ;;
+            'rp'|'reverse-proxy')
+                echo "Start reverse proxy"
+                start_reverse_proxy
+                ;;
+            rundeck)
+                echo "Start Rundeck"
+                start_rundeck
                 ;;
             *)
                 echo "$2 is not a valid option for 'start'"
+                ;;
+        esac
+        ;;
+    stop)
+        case "$2" in
+            jenkins)
+                stop_jenkins
+                ;;
+            *)
+                echo "You must specify a valid process to stop."
                 ;;
         esac
         ;;
