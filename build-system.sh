@@ -203,6 +203,7 @@ setup_reverse_proxy() {
 
 setup_rundeck()
 {
+    # Make sure Rundeck was compiled first
     if [ ! -f "$BLDPATH/rundeck-$RDECK_VERSION/rundeckapp/build/libs/rundeck-$RDECK_VERSION-SNAPSHOT.war" ]; then
         echo "Rundeck WAR file not found in build directory.  Did you run \"$0 build rundeck\" first?"
         exit 1
@@ -221,7 +222,9 @@ start_code_server() {
 
 start_homer() {
     # Start an instance of Caddy on port 8000 serving Homer dashboard from www directory
-    $BINPATH/caddy file-server --listen :8000 --root www/ >> $CWD/caddy.log 2>&1 &
+    $BINPATH/caddy file-server --listen :8000 --root www/ >> $LOGPATH/caddy-homer.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/caddy-homer.pid
 }
 
 start_jenkins() {
@@ -247,21 +250,42 @@ start_reverse_proxy() {
 }
 
 start_rundeck() {
+    # If base directory doesn't exist, create it
     if [ ! -d "$RDECK_BASE" ]; then
         mkdir -p $RDECK_BASE
-        echo "Created RDECK_BASE - $RDECK_BASE" >> $CWD/rundeck.log
+        echo "Created RDECK_BASE - $RDECK_BASE" >> $LOGPATH/rundeck.log
     fi
-
+    
+    # Copy the war into the base directory if needed
     if [ ! -f "$RDECK_BASE/rundeck.war" ]; then
         cp $BINPATH/rundeck.war $RDECK_BASE/rundeck.war
-        echo "Copied rundeck.war from $BINPATH" >> $CWD/rundeck.log
+        echo "Copied rundeck.war from $BINPATH" >> $LOGPATH/rundeck.log
     fi
 
-
-    PATH=$PATH:$RDECK_BASE/tools/bin MANPATH=$MANPATH:$RDECK_BASE/docs/man JAVA_HOME=$JDKPATH/java17 $JDKPATH/17/bin/java -Xmx4g -jar $RDECK_BASE/rundeck.war >> $CWD/rundeck.log 2>&1 &
+    PATH=$PATH:$RDECK_BASE/tools/bin MANPATH=$MANPATH:$RDECK_BASE/docs/man JAVA_HOME=$JDKPATH/java17 $JDKPATH/17/bin/java -Xmx4g -jar $RDECK_BASE/rundeck.war >> $LOGPATH/rundeck.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/rundeck.pid
 }
 
 ## Stop functions
+stop_code_server() {
+    if [ -r "$LOGPATH/code-server.pid" ]; then
+        echo "Stopping code-server"
+        kill $(cat $LOGPATH/code-server.pid)
+        rm $LOGPATH/code-server.pid
+    else
+        echo "No PID file found!  Could not stop code-server."
+    fi
+}
+stop_homer() {
+    if [ -r "$LOGPATH/caddy-homer.pid" ]; then
+        echo "Stopping Homer's Caddy instance"
+        kill $(cat $LOGPATH/caddy-homer.pid)
+        rm $LOGPATH/caddy-homer.pid
+    else
+        echo "No PID file found!  Could not stop Homer."
+    fi
+}
 stop_jenkins() {
     if [ -r "$LOGPATH/jenkins.pid" ]; then
         echo "Stopping Jenkins"
@@ -269,6 +293,32 @@ stop_jenkins() {
         rm $LOGPATH/jenkins.pid
     else
         echo "No PID file found!  Could not stop Jenkins."
+    fi
+}
+stop_reverse_proxy() {
+    if [ -r "$LOGPATH/caddy-rp.pid" ]; then
+        echo "Stopping reverse proxy Caddy instance"
+        kill $(cat $LOGPATH/caddy-rp.pid)
+        rm $LOGPATH/caddy-rp.pid
+    else
+        echo "No PID file found!  Could not stop reverse proxy Caddy."
+    fi
+    if [ -r "$LOGPATH/authelia.pid" ]; then
+        echo "Stopping Authelia"
+        kill $(cat $LOGPATH/authelia.pid)
+        rm $LOGPATH/authelia.pid
+    else
+        echo "No PID file found!  Could not stop Authelia."
+    fi
+}
+
+stop_rundeck() {
+    if [ -r "$LOGPATH/rundeck.pid" ]; then
+        echo "Stopping Rundeck"
+        kill $(cat $LOGPATH/rundeck.pid)
+        rm $LOGPATH/rundeck.pid
+    else
+        echo "No PID file found!  Could not stop Rundeck."
     fi
 }
 
@@ -402,8 +452,25 @@ case "$1" in
         ;;
     stop)
         case "$2" in
+            code-server)
+                echo "Stop code-server"
+                stop_code_server
+                ;;
+            homer)
+                echo "Stop Caddy instance for Homer"
+                stop_homer
+                ;;
             jenkins)
+                echo "Stop Jenkins"
                 stop_jenkins
+                ;;
+            'rp'|'reverse-proxy')
+                echo "Stop reverse proxy"
+                stop_reverse_proxy
+                ;;
+            rundeck)
+                echo "Stop Rundeck"
+                stop_rundeck
                 ;;
             *)
                 echo "You must specify a valid process to stop."
