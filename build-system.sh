@@ -19,8 +19,8 @@ fi
 ## Build functions
 build_rundeck() {
     cd $BLDPATH
-    tar xf $DLPATH/$RDECK_SRC_TARBALL
-
+    tar xf $DLPATH/$RUNDECK_SRC_TARBALL
+    
     ln -s $(find . -name rundeck-*) rundeck
     cd rundeck
 
@@ -357,6 +357,16 @@ case "$1" in
 
         # Download specified program
         case "$2" in
+            all)
+                download_authelia
+                download_caddy
+                download_code-server
+                download_homer
+                download_jdk11
+                download_jdk17
+                download_jenkins
+                download_rundeck
+                ;;
             authelia)
                 download_authelia
                 ;;
@@ -382,7 +392,7 @@ case "$1" in
                 download_rundeck
                 ;;
             *)
-                echo "$2 is not a valid option for 'start'"
+                echo "$2 is not a valid option for 'download'"
                 cd $CWD
                 ;;
         esac
