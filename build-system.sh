@@ -63,6 +63,11 @@ download_jdk17() {
     FILE=$JDK17_TARBALL
     download_file
 }
+download_jdk21() {
+    URL=$JDK21_URL
+    FILE=$JDK21_TARBALL
+    download_file
+}
 download_jenkins() {
     URL=$JENKINS_URL
     FILE=$JENKINS_TARBALL
@@ -109,8 +114,10 @@ setup_jdk() {
     cd $JDKPATH
     tar xf $DLPATH/$JDK11_TARBALL
     tar xf $DLPATH/$JDK17_TARBALL
+    tar xf $DLPATH/$JDK21_TARBALL
     ln -s $(find . -name jdk-11*) 11
     ln -s $(find . -name jdk-17*) 17    
+    ln -s $(find . -name jdk-21*) 21
 }
 
 setup_jenkins()
@@ -228,7 +235,7 @@ start_homer() {
 }
 
 start_jenkins() {
-    JENKINS_HOME=$CWD/jenkins JAVA_HOME=$JDKPATH/17 $JDKPATH/17/bin/java -jar $BINPATH/jenkins.war --httpPort=8070 >> $LOGPATH/jenkins.log 2>&1 &
+    JENKINS_HOME=$CWD/jenkins JAVA_HOME=$JDKPATH/21 $JDKPATH/21/bin/java -jar $BINPATH/jenkins.war --httpPort=8070 >> $LOGPATH/jenkins.log 2>&1 &
     PID=$!
     echo $PID > $LOGPATH/jenkins.pid    
 }
@@ -364,6 +371,7 @@ case "$1" in
                 download_homer
                 download_jdk11
                 download_jdk17
+                download_jdk21
                 download_jenkins
                 download_rundeck
                 ;;
@@ -384,6 +392,9 @@ case "$1" in
                 ;;
             jdk17)
                 download_jdk17
+                ;;
+            jdk21)
+                download_jdk21
                 ;;
             jenkins)
                 download_jenkins
