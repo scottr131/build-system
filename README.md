@@ -26,47 +26,53 @@ URLs for the various open-source components can also be updated in this file.
 
 Run the scripts in this order. This will eventually be combined into one or two scripts.
 
-`./download.sh`
+`./build-system.sh setup dirs`
+Creates the various directories for the components.
+
+`./build-system.sh download all`
 Downloads the various open source components.
 
-`./setup-jdk.sh`
+`./build-system.sh setup jdk`
 Unpacks Temurin JDK 11 and 17 to the appropriate directories.
 
-`./build-rundeck.sh`
+`./build-system.sh build rundeck`
 Unpacks the Rundeck sources and builds `rundeck.war`. This requires JDK 11, so `setup-jdk.sh` MUST be run before this script. 
 
-`./setup-rundeck.sh`
+`./build-system.sh setup rp`
+Sets up the reverse proxy with Caddy and Authelia.  Also creates a reverse proxy user.
+
+`./build-system.sh setup rundeck`
 Copies `rundeck.war` will then be copied to the `bin` directory. 
 
-`./setup-jenkins.sh`
+`./build-system.sh setup jenkins`
 Copies `jenkins.war` to the `bin` directory.
 
-`./setup-code-server.sh`
+`./build-system.sh setup cs`
 Unpacks code-server into a directory inside `bin`.
 
-`./setup-homer-caddy.sh`
+`./build-system.sh setup homer`
 Unpacks the Homer dashboard and Caddy web server.  
 
-`./setup-authelia-caddy.sh`
+`./build-system.sh setup reverse-proxy`
 Unpacks Authelia and configures an authenticaed reverse proxy using Caddy and Authelia.  This script will prompt for an Authelia username and password if they are not specified in `build-system.conf`.
 
 ## Starting
 
 There isn't really a particular order these scripts need to be run in, but this order is suggested.  These will eventually be combined into a single startup script.
 
-`./start-code-server.sh`
+`./build-system.sh start code-server`
 Starts code-server.
 
-`./start-jenkins.sh`
+`./build-system.sh start jeknins`
 Starts Jenkins.
 
-`./start-rundeck.sh`
+`./build-system.sh start rundeck`
 Starts Rundeck.
 
-`./start-homer.sh`
+`./build-system.sh start homer`
 Starts a copy of Caddy serving the Homer dashboard.
 
-`./start-reverse-proxy.sh`
+`./build-system.sh start rp`
 Starts a copy of Caddy and Authelia working as a reverse proxy with authentication for the above services.
 
 ## Ports
