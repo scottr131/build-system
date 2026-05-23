@@ -78,6 +78,11 @@ download_rundeck() {
     FILE=$RUNDECK_TARBALL
     download_file
 }
+download_semaphore() {
+    URL=$SEMAPHORE_URL
+    FILE=$SEMAPHORE_TARBALL
+    download_file
+}
 
 
 ## Setup functions
@@ -90,6 +95,7 @@ setup_directories() {
     mkdir -p $JDKPATH
     mkdir -p $LOGPATH
     mkdir -p $WWWPATH
+    mkdir -p $SEMAPHOREPATH
 }
 
 setup_code_server() {
@@ -123,6 +129,64 @@ setup_jdk() {
 setup_jenkins()
 {
     cp $DLPATH/jenkins.war $BINPATH/jenkins.war
+}
+
+setup_semaphore() {
+    cd $BINPATH
+    tar xf $DLPATH/$SEMAPHORE_TARBALL semaphore
+
+    # Generate random secrets if not specified in configuration file
+    if [ -z "$COOKIE_HASH" ]; then
+        echo "Using random cookie hash"
+        COOKIE_HASH=$(head -c32 /dev/urandom | base64)
+    fi
+
+    if [ -z "$COOKIE_ENCRYPTION" ]; then
+        echo "Using random cookie encryption"
+        COOKIE_ENCRYPTION=$(head -c32 /dev/urandom | base64)
+    fi
+    
+    if [ -z "$ACCESS_KEY_ENCRYPTION" ]; then
+        echo "Using random access key encryption"
+        ACCESS_KEY_ENCRYPTION=$(head -c32 /dev/urandom | base64)
+    fi
+    
+    # Substitute variables into user list and save configuration
+    echo "Writing configuration"
+    COOKIE_HASH=$COOKIE_HASH \
+    COOKIE_ENCRYPTION=$COOKIE_ENCRYPTION \
+    ACCESS_KEY_ENCRYPTION=$ACCESS_KEY_ENCRYPTION \
+    SEMAPHORE_DB=$SEMAPHORE_DB \
+    envsubst < $TPLPATH/semaphore-config.json.template > $SEMAPHOREPATH/config.json
+    
+    # Gather username and password if needed
+    if [ -z "$SEMAPHORE_USER" ]; then
+        echo "No Semaphore UI user specified in configuration or secrets file"
+        read -p "Enter desired username for Semaphore UI: " SEMAPHORE_USER
+        echo "Using $SEMAPHORE_USER as username"
+    fi
+
+    if [ -z "$USER_PASSWORD"]; then
+        # A password was also not specified, so prompt
+        echo "No Semaphore UI password specified in configuration or secrets file, prompting for password"
+        read -s -p "Password: " SEMAPHORE_PASSWORD
+        echo
+        read -s -p "Confirm: " SEMAPHORE_CONFIRM
+        echo
+        if [ "$SEMAPHORE_PASSWORD" != "$SEMAPHORE_CONFIRM" ]; then
+            # Exit for now, this could re-prompt
+            unset SEMAPHORE_PASSWORD
+            unset SEMAPHORE_CONFIRM
+            echo "Passwords don't match.  Exiting.'"
+            exit 1
+        fi
+        unset SEMAPHORE_CONFIRM
+    fi
+        
+    $BINPATH/semaphore user add --admin --login $SEMAPHORE_USER --password $SEMAPHORE_PASSWORD --name \"Admin\" --email \"admin@localhost\" --config $SEMAPHOREPATH/config.json
+    unset SEMAPHORE_PASSWORD
+    
+    
 }
 
 setup_reverse_proxy() {
@@ -274,6 +338,20 @@ start_rundeck() {
     echo $PID > $LOGPATH/rundeck.pid
 }
 
+
+start_semaphore() {
+    #cd $AUTHPATH
+
+    # Start Semaphore
+    $BINPATH/semaphore server --config $SEMAPHOREPATH/config.json >> $LOGPATH/semaphore.log 2>&1 &
+    PID=$!
+    echo $PID > $LOGPATH/semaphore.pid
+
+
+
+    # cd $CWD    
+}
+
 ## Stop functions
 stop_code_server() {
     if [ -r "$LOGPATH/code-server.pid" ]; then
@@ -329,6 +407,17 @@ stop_rundeck() {
     fi
 }
 
+stop_semaphore() {
+    if [ -r "$LOGPATH/semaphore.pid" ]; then
+        echo "Stopping Semaphore UI"
+        kill $(cat $LOGPATH/semaphore.pid)
+        rm $LOGPATH/semaphore.pid
+    else
+        echo "No PID file found!  Could not stop Semaphore UI."
+    fi
+}
+
+
 ## Helper functions
 download_file () {
     if [ ! -f "$FILE" ]; then
@@ -374,6 +463,7 @@ case "$1" in
                 download_jdk21
                 download_jenkins
                 download_rundeck
+                download_semaphore
                 ;;
             authelia)
                 download_authelia
@@ -402,6 +492,9 @@ case "$1" in
             rundeck)
                 download_rundeck
                 ;;
+            semaphore)
+                download_semaphore
+                ;;            
             *)
                 echo "$2 is not a valid option for 'download'"
                 cd $CWD
@@ -439,6 +532,10 @@ case "$1" in
                 echo "Setup Rundeck"
                 setup_rundeck
                 ;;
+            'semaphore')
+                echo "Setup Semaphore UI"
+                setup_semaphore
+                ;;
             *)
                 echo "$2 is not a valid option for 'setup'"
                 ;;
@@ -466,6 +563,11 @@ case "$1" in
                 echo "Start Rundeck"
                 start_rundeck
                 ;;
+            semaphore)
+                echo "Start Semaphore UI"
+                start_semaphore
+                ;;
+
             *)
                 echo "$2 is not a valid option for 'start'"
                 ;;
@@ -493,6 +595,11 @@ case "$1" in
                 echo "Stop Rundeck"
                 stop_rundeck
                 ;;
+            semaphore)
+                echo "Stop Semaphore UI"
+                stop_semaphore
+                ;;
+
             *)
                 echo "You must specify a valid process to stop."
                 ;;
