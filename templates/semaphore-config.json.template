@@ -1,0 +1,9 @@
+{
+  "sqlite": {
+    "host": "${SEMAPHORE_DB}"
+  },
+  "dialect": "sqlite",
+  "cookie_hash": "${COOKIE_HASH}",
+  "cookie_encryption": "${COOKIE_ENCRYPTION}",
+  "access_key_encryption": "${ACCESS_KEY_ENCRYPTION}"
+}
