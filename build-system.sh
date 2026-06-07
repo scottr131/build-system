@@ -462,7 +462,6 @@ case "$1" in
                 download_jdk17
                 download_jdk21
                 download_jenkins
-                download_rundeck
                 download_semaphore
                 ;;
             authelia)
