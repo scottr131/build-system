@@ -151,10 +151,6 @@ access_control:
     - domain: 'semaphore.$BUILD_HOST_FQDN'
       policy: 'one_factor'
 
-    # Rundeck is deprecated in build-system, use Semaphore
-    - domain: 'rundeck.$BUILD_HOST_FQDN'
-      policy: 'one_factor'
-
 
 
 ##
