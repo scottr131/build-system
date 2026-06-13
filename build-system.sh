@@ -16,21 +16,6 @@ else
 fi
 
 ### Functions
-## Build functions
-build_rundeck() {
-    cd $BLDPATH
-    tar xf $DLPATH/$RUNDECK_SRC_TARBALL
-    
-    ln -s $(find . -name rundeck-*) rundeck
-    cd rundeck
-
-    git init
-    git add .
-    git config user.email "builder"
-    git config user.name "builder"
-    git commit -m "fake"
-    JAVA_HOME=/home/clusteradm/build-system/jdk/11 PATH=$PATH:/home/clusteradm/build-system/jdk/11/bin ./gradlew -x check build
-}
 
 ## Download functions
 download_authelia() {
@@ -53,11 +38,6 @@ download_homer() {
     FILE=$HOMER_ZIP
     download_file
 }
-download_jdk11() {
-    URL=$JDK11_URL
-    FILE=$JDK11_TARBALL
-    download_file
-}
 download_jdk17() {
     URL=$JDK17_URL
     FILE=$JDK17_TARBALL
@@ -71,11 +51,6 @@ download_jdk21() {
 download_jenkins() {
     URL=$JENKINS_URL
     FILE=$JENKINS_TARBALL
-    download_file
-}
-download_rundeck() {
-    URL=$RUNDECK_URL
-    FILE=$RUNDECK_TARBALL
     download_file
 }
 download_semaphore() {
@@ -118,10 +93,8 @@ setup_homer() {
 
 setup_jdk() {
     cd $JDKPATH
-    tar xf $DLPATH/$JDK11_TARBALL
     tar xf $DLPATH/$JDK17_TARBALL
     tar xf $DLPATH/$JDK21_TARBALL
-    ln -s $(find . -name jdk-11*) 11
     ln -s $(find . -name jdk-17*) 17    
     ln -s $(find . -name jdk-21*) 21
 }
@@ -272,17 +245,6 @@ setup_reverse_proxy() {
     echo "PASS_HASH=$PASS_HASH" >> .secrets
 }
 
-setup_rundeck()
-{
-    # Make sure Rundeck was compiled first
-    if [ ! -f "$BLDPATH/rundeck-$RDECK_VERSION/rundeckapp/build/libs/rundeck-$RDECK_VERSION-SNAPSHOT.war" ]; then
-        echo "Rundeck WAR file not found in build directory.  Did you run \"$0 build rundeck\" first?"
-        exit 1
-    else
-        echo "Setup Rundeck"        
-        cp $BLDPATH/rundeck-$RDECK_VERSION/rundeckapp/build/libs/rundeck-$RDECK_VERSION-SNAPSHOT.war $BINPATH/rundeck.war
-    fi
-}
 
 ## Startup functions
 start_code_server() {
@@ -319,25 +281,6 @@ start_reverse_proxy() {
 
     cd $CWD    
 }
-
-start_rundeck() {
-    # If base directory doesn't exist, create it
-    if [ ! -d "$RDECK_BASE" ]; then
-        mkdir -p $RDECK_BASE
-        echo "Created RDECK_BASE - $RDECK_BASE" >> $LOGPATH/rundeck.log
-    fi
-    
-    # Copy the war into the base directory if needed
-    if [ ! -f "$RDECK_BASE/rundeck.war" ]; then
-        cp $BINPATH/rundeck.war $RDECK_BASE/rundeck.war
-        echo "Copied rundeck.war from $BINPATH" >> $LOGPATH/rundeck.log
-    fi
-
-    PATH=$PATH:$RDECK_BASE/tools/bin MANPATH=$MANPATH:$RDECK_BASE/docs/man JAVA_HOME=$JDKPATH/java17 $JDKPATH/17/bin/java -Xmx4g -jar $RDECK_BASE/rundeck.war >> $LOGPATH/rundeck.log 2>&1 &
-    PID=$!
-    echo $PID > $LOGPATH/rundeck.pid
-}
-
 
 start_semaphore() {
     #cd $AUTHPATH
@@ -396,17 +339,6 @@ stop_reverse_proxy() {
         echo "No PID file found!  Could not stop Authelia."
     fi
 }
-
-stop_rundeck() {
-    if [ -r "$LOGPATH/rundeck.pid" ]; then
-        echo "Stopping Rundeck"
-        kill $(cat $LOGPATH/rundeck.pid)
-        rm $LOGPATH/rundeck.pid
-    else
-        echo "No PID file found!  Could not stop Rundeck."
-    fi
-}
-
 stop_semaphore() {
     if [ -r "$LOGPATH/semaphore.pid" ]; then
         echo "Stopping Semaphore UI"
@@ -434,18 +366,6 @@ download_file () {
 
 ### Main switch
 case "$1" in
-    build)
-        case "$2" in
-            rundeck)
-                echo "Build Rundeck"
-                build_rundeck
-                ;;
-            *)
-                echo "$2 is not a valid option for 'build'"
-                ;;
-        esac
-        ;;
-
     'download')
         # Make download directory
         mkdir -p $DLPATH
@@ -458,7 +378,6 @@ case "$1" in
                 download_caddy
                 download_code-server
                 download_homer
-                download_jdk11
                 download_jdk17
                 download_jdk21
                 download_jenkins
@@ -476,9 +395,6 @@ case "$1" in
             homer)
                 download_homer
                 ;;
-            jdk11)
-                download_jdk11
-                ;;
             jdk17)
                 download_jdk17
                 ;;
@@ -487,9 +403,6 @@ case "$1" in
                 ;;
             jenkins)
                 download_jenkins
-                ;;
-            rundeck)
-                download_rundeck
                 ;;
             semaphore)
                 download_semaphore
@@ -527,10 +440,6 @@ case "$1" in
                 echo "Setup reverse proxy with Authelia and Caddy"
                 setup_reverse_proxy
                 ;;
-            'rundeck')
-                echo "Setup Rundeck"
-                setup_rundeck
-                ;;
             'semaphore')
                 echo "Setup Semaphore UI"
                 setup_semaphore
@@ -557,10 +466,6 @@ case "$1" in
             'rp'|'reverse-proxy')
                 echo "Start reverse proxy"
                 start_reverse_proxy
-                ;;
-            rundeck)
-                echo "Start Rundeck"
-                start_rundeck
                 ;;
             semaphore)
                 echo "Start Semaphore UI"
@@ -589,10 +494,6 @@ case "$1" in
             'rp'|'reverse-proxy')
                 echo "Stop reverse proxy"
                 stop_reverse_proxy
-                ;;
-            rundeck)
-                echo "Stop Rundeck"
-                stop_rundeck
                 ;;
             semaphore)
                 echo "Stop Semaphore UI"
